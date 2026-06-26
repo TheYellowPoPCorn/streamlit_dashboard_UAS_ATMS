@@ -6,229 +6,61 @@ import networkx as nx
 from pyvis.network import Network
 import streamlit.components.v1 as components
 import os
-import xml.etree.ElementTree as ET
 
-# ==========================================
-# 1. KONFIGURASI HALAMAN & TEMA UTAMA
-# ==========================================
-st.set_page_config(
-    page_title="TEMA 4: WAR KREDIBILITAS BRAND",
-    page_icon="⚔️",
-    layout="wide"
-)
+# Konfigurasi Tema
+st.set_page_config(page_title="War Kredibilitas Brand", layout="wide", page_icon="⚔️")
 
 st.markdown("""
     <style>
-    .brand-logo { max-height: 50px; object-fit: contain; margin-bottom: 10px; }
     .header-title { font-size: 32px; font-weight: bold; color: #1E3A8A; }
-    .metric-box { padding: 15px; border-radius: 10px; background: #f8fafc; border-left: 5px solid #3b82f6; }
     </style>
 """, unsafe_allow_html=True)
 
 st.markdown('<p class="header-title">⚔️ TEMA 4: WAR KREDIBILITAS BRAND: E-COMMERCE & EKSPEDISI LOGISTIK</p>', unsafe_allow_html=True)
-st.write("Dashboard interaktif untuk memonitor sentimen, tren keluhan, dan aktor jaringan utama pada platform e-commerce dan logistik di Indonesia.")
 
-# ==========================================
-# 2. LOGO BRAND & DATASET DOWNLOAD
-# ==========================================
-col_logo1, col_logo2, col_logo3, col_logo4 = st.columns(4)
-with col_logo1: st.image("https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee_logo.svg", width=120)
-with col_logo2: st.image("https://upload.wikimedia.org/wikipedia/commons/9/9d/Tokopedia_Logo.svg", width=150)
-with col_logo3: st.image("https://upload.wikimedia.org/wikipedia/commons/9/92/Logo_JNE.svg", width=80)
-with col_logo4: st.image("https://upload.wikimedia.org/wikipedia/commons/b/b9/J%26T_Express_logo.svg", width=100)
-
-st.write("---")
-st.subheader("📄 Dataset yang Digunakan")
-dataset_name = "ecommerce_inset_labeled_final.csv"
-
-# ==========================================
-# PROTEKSI DATASET (MENCEGAH KEYERROR BRAND & TOPIC)
-# ==========================================
+# Dataset Management
 @st.cache_data
 def load_data():
-    if os.path.exists(dataset_name):
-        df = pd.read_csv(dataset_name)
-        
-        # 1. Auto-generate kolom 'brand' jika tidak ada
-        if 'brand' not in df.columns and 'full_text' in df.columns:
-            def tentukan_brand(text):
-                text_lower = str(text).lower()
-                if 'shopee' in text_lower: return 'Shopee'
-                elif 'tokopedia' in text_lower or 'tokped' in text_lower: return 'Tokopedia'
-                elif 'j&t' in text_lower or 'jnt' in text_lower: return 'J&T'
-                elif 'jne' in text_lower: return 'JNE'
-                else: return 'Lainnya'
-            df['brand'] = df['full_text'].apply(tentukan_brand)
-            
-        # 2. Auto-generate kolom 'topic_issue' jika tidak ada
-        if 'topic_issue' not in df.columns and 'full_text' in df.columns:
-            def tentukan_topik(text):
-                text_lower = str(text).lower()
-                if 'kirim' in text_lower or 'lama' in text_lower or 'lambat' in text_lower or 'sampai' in text_lower:
-                    return 'Keterlambatan Pengiriman'
-                elif 'aplikasi' in text_lower or 'error' in text_lower or 'bug' in text_lower:
-                    return 'Aplikasi Error / Saldo'
-                elif 'refund' in text_lower or 'dana' in text_lower or 'uang' in text_lower:
-                    return 'Refund & Pengembalian Dana'
-                elif 'kurir' in text_lower or 'kasar' in text_lower or 'marah' in text_lower:
-                    return 'Kurir Kurang Ramah'
-                elif 'promo' in text_lower or 'voucher' in text_lower or 'diskon' in text_lower:
-                    return 'Masalah Validasi Promo'
-                else:
-                    return 'Keluhan Layanan Umum'
-            df['topic_issue'] = df['full_text'].apply(tentukan_topik)
-            
-        # 3. Fallback super aman jika format data benar-benar berantakan
-        if 'brand' not in df.columns: df['brand'] = 'Semua Brand'
-        if 'topic_issue' not in df.columns: df['topic_issue'] = 'Lainnya'
-        if 'inset_sentiment' not in df.columns: df['inset_sentiment'] = 'Neutral'
-
-    else:
-        # Fallback jika CSV belum diunggah sama sekali
-        np.random.seed(42)
-        df = pd.DataFrame({
-            'username': [f'user{i}' for i in range(500)],
-            'brand': np.random.choice(['Shopee', 'Tokopedia', 'JNE', 'J&T'], 500),
-            'inset_sentiment': np.random.choice(['Positive', 'Neutral', 'Negative'], 500),
-            'kmeans_cluster': np.random.choice(['Cluster 0', 'Cluster 1', 'Cluster 2'], 500),
-            'topic_issue': np.random.choice(['Pengiriman Lambat', 'Aplikasi Error', 'CS Kurang Ramah'], 500)
-        })
-    return df
+    # Sesuaikan dengan nama file CSV hasil crawling Anda
+    if os.path.exists("ecommerce_inset_labeled_final.csv"):
+        return pd.read_csv("ecommerce_inset_labeled_final.csv")
+    return pd.DataFrame()
 
 df = load_data()
 
-csv_data = df.to_csv(index=False).encode('utf-8')
-st.download_button(
-    label="📥 Download Dataset CSV",
-    data=csv_data,
-    file_name=dataset_name,
-    mime='text/csv'
-)
-st.write("---")
+# Tab Navigasi
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Klasifikasi Sentimen", "🎯 Klasterisasi", "🔥 Trending Topic (LDA)", "🕸️ SNA"])
 
-# ==========================================
-# 3. NAVIGASI TABS
-# ==========================================
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 1. Klasifikasi Sentimen", 
-    "🎯 2. Klasterisasi", 
-    "🔥 3. Trending Topic (LDA)", 
-    "🕸️ 4. SNA (Gephi Network)"
-])
-
-# ------------------------------------------
 # TAB 1: KLASIFIKASI SENTIMEN
-# ------------------------------------------
 with tab1:
-    st.header("📊 Distribusi Klasifikasi Sentimen")
-    col_a, col_b = st.columns([1, 2])
-    
-    with col_a:
-        st.write("Filter berdasarkan Brand:")
-        pilih_brand = st.selectbox("Pilih Brand:", ['Semua Brand'] + list(df['brand'].unique()))
-        
-        df_sentimen = df if pilih_brand == 'Semua Brand' else df[df['brand'] == pilih_brand]
-        sentimen_count = df_sentimen['inset_sentiment'].value_counts().reset_index()
-        sentimen_count.columns = ['Sentimen', 'Jumlah']
-        st.dataframe(sentimen_count, use_container_width=True, hide_index=True)
+    st.header("📊 Distribusi Sentimen Brand")
+    if not df.empty and 'brand' in df.columns:
+        brand = st.selectbox("Pilih Brand:", df['brand'].unique())
+        df_f = df[df['brand'] == brand]
+        fig = px.pie(df_f, names='inset_sentiment', title=f"Sentimen Brand: {brand}")
+        st.plotly_chart(fig, use_container_width=True)
 
-    with col_b:
-        fig_pie = px.pie(sentimen_count, values='Jumlah', names='Sentimen', 
-                         color='Sentimen',
-                         color_discrete_map={'Positive':'#2ea44f', 'Neutral':'#a3b1cc', 'Negative':'#cb2431'},
-                         hole=0.4, title=f"Proporsi Sentimen - {pilih_brand}")
-        st.plotly_chart(fig_pie, use_container_width=True)
-
-# ------------------------------------------
-# TAB 2: KLASTERISASI (K-MEANS)
-# ------------------------------------------
+# TAB 2: KLASTERISASI
 with tab2:
     st.header("🎯 Hasil Klasterisasi (K-Means)")
     if 'kmeans_cluster' in df.columns:
-        cluster_counts = df['kmeans_cluster'].value_counts().reset_index()
-        cluster_counts.columns = ['Klaster', 'Jumlah Tweet']
-        fig_bar_cluster = px.bar(cluster_counts, x='Klaster', y='Jumlah Tweet',
-                                 color='Klaster', title="Distribusi Data per Klaster",
-                                 text='Jumlah Tweet')
-        st.plotly_chart(fig_bar_cluster, use_container_width=True)
-    else:
-        st.warning("Kolom 'kmeans_cluster' tidak ditemukan di dataset Anda.")
+        fig = px.histogram(df, x='kmeans_cluster', color='brand')
+        st.plotly_chart(fig)
 
-# ------------------------------------------
 # TAB 3: TRENDING TOPIC (LDA)
-# ------------------------------------------
 with tab3:
-    st.header("🔥 Trending Topic Keluhan (LDA)")
+    st.header("🔥 Trending Topic Keluhan")
     if 'topic_issue' in df.columns:
-        topic_counts = df['topic_issue'].value_counts().reset_index()
-        topic_counts.columns = ['Topik Keluhan', 'Jumlah']
-        topic_counts = topic_counts.sort_values(by='Jumlah', ascending=True)
-        fig_lda = px.bar(topic_counts, x='Jumlah', y='Topik Keluhan', orientation='h',
-                         color='Jumlah', color_continuous_scale='Reds',
-                         title="Volume Keluhan Berdasarkan Topik LDA")
-        st.plotly_chart(fig_lda, use_container_width=True)
-    else:
-        st.warning("Kolom 'topic_issue' tidak ditemukan di dataset Anda.")
+        fig = px.bar(df['topic_issue'].value_counts().reset_index(), x='index', y='topic_issue')
+        st.plotly_chart(fig)
 
-# ------------------------------------------
-# TAB 4: SOCIAL NETWORK ANALYSIS (SNA)
-# ------------------------------------------
+# TAB 4: SNA
 with tab4:
     st.header("🕸️ Social Network Analysis (SNA)")
-    st.write("Analisis jaringan aktor yang menyebarkan komplain berdasarkan file **Gephi (`ecommerce.gexf`)**.")
-    
-    gexf_file = 'ecommerce.gexf'
-    
-    if os.path.exists(gexf_file):
-        try:
-            # BYPASS NETWORKX: Baca langsung dari XML Core agar 100% anti-crash
-            tree = ET.parse(gexf_file)
-            root = tree.getroot()
-            ns = {'g': root.tag.split('}')[0].strip('{')} if '}' in root.tag else {'g': ''}
-            xpath_query = './/g:edge' if ns['g'] else './/edge'
-            
-            G = nx.Graph()
-            
-            # Ekstrak data garis
-            for edge in root.findall(xpath_query, ns):
-                source = edge.get('source')
-                target = edge.get('target')
-                if source and target:
-                    G.add_edge(source, target)
-            
-            # Eksekusi SNA Centrality
-            degree_dict = nx.degree_centrality(G)
-            
-            if len(degree_dict) > 0:
-                df_degree_all = pd.DataFrame(list(degree_dict.items()), columns=['Akun', 'Degree Centrality'])
-                df_degree_all = df_degree_all.sort_values(by='Degree Centrality', ascending=False)
-                df_degree_top10 = df_degree_all.head(10)
-                
-                st.subheader("🏆 Top 10 Aktor Paling Berpengaruh (Degree Centrality)")
-                st.dataframe(df_degree_top10, use_container_width=True, hide_index=True)
-                
-                st.subheader("🌐 Peta Jaringan Interaktif")
-                st.write("Ditampilkan maksimal 200 node teratas agar tidak membebani browser.")
-                
-                # Filter Node
-                if len(G.nodes) > 200:
-                    top_nodes = list(df_degree_all['Akun'].head(200).values)
-                    G_sub = G.subgraph(top_nodes)
-                else:
-                    G_sub = G
-                
-                # Render PyVis
-                net = Network(height="500px", width="100%", bgcolor="#ffffff", font_color="black")
-                net.from_nx(G_sub)
-                
-                path_html = "network_map.html"
-                net.save_graph(path_html)
-                with open(path_html, 'r', encoding='utf-8') as HtmlFile:
-                    components.html(HtmlFile.read(), height=550)
-            else:
-                st.warning("Grafik GEXF berhasil dibaca, tapi tidak ditemukan relasi antar akun di dalamnya.")
-                
-        except Exception as e:
-            st.error(f"Terjadi kesalahan teknis saat merender jaringan: {e}")
-    else:
-        st.info("File `ecommerce.gexf` belum ditemukan di direktori Anda.")
+    if os.path.exists("ecommerce.gexf"):
+        G = nx.read_gexf("ecommerce.gexf")
+        net = Network(height="500px", width="100%")
+        net.from_nx(G.subgraph(list(G.nodes)[:100]))
+        net.save_graph("net.html")
+        with open("net.html", 'r', encoding='utf-8') as f:
+            components.html(f.read(), height=550)
