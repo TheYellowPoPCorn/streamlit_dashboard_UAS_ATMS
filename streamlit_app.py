@@ -144,26 +144,26 @@ with tab4:
     
     if os.path.exists(gexf_file):
         try:
-            # SOLUSI FIX ERROR EDGE ATTRIBUTE: Bersihkan atribut edge ilegal dari file GEXF sebelum dibaca NetworkX
+            # Membaca struktur XML dokumen GEXF asli
             tree = ET.parse(gexf_file)
             root = tree.getroot()
             
-            # Cari namespace XML GEXF dinamik
+            # Deteksi namespace XML otomatis agar dinamis
             ns = {'g': root.tag.split('}')[0].strip('{')} if '}' in root.tag else {'g': ''}
             xpath_query = './/g:edge' if ns['g'] else './/edge'
             
-            # Hapus paksa elemen bawaan gephi yang bikin crash di networkx (seperti attvalues pada edge)
+            # Hapus paksa elemen bawaan Gephi pada garis (edge) yang tidak didukung NetworkX versi baru
             for edge in root.findall(xpath_query, ns):
                 for child in list(edge):
                     if 'attvalues' in child.tag:
                         edge.remove(child)
             
-            # Simpan ke file temporer yang bersih
-            cleaned_gexf = 'ecommerce_cleaned.gexf'
-            tree.write(cleaned_cleaned_gexf := cleaned_gexf, encoding='utf-8', xml_declaration=True)
+            # Simpan hasil pembersihan ke file temporer baru dengan nama variabel yang valid
+            cleaned_gexf_path = 'ecommerce_cleaned.gexf'
+            tree.write(cleaned_gexf_path, encoding='utf-8', xml_declaration=True)
             
-            # Membaca graf yang sudah dibersihkan secara aman
-            G = nx.read_gexf(cleaned_cleaned_gexf)
+            # Membaca graf yang sudah bersih menggunakan NetworkX secara aman
+            G = nx.read_gexf(cleaned_gexf_path)
             
             # Hitung Degree Centrality
             degree_dict = nx.degree_centrality(G)
@@ -188,7 +188,7 @@ with tab4:
             else:
                 G_sub = G
             
-            # Render Graf
+            # Render Graf via PyVis
             net = Network(height="500px", width="100%", bgcolor="#ffffff", font_color="black")
             net.from_nx(G_sub)
             
@@ -197,9 +197,9 @@ with tab4:
             HtmlFile = open(path_html, 'r', encoding='utf-8')
             components.html(HtmlFile.read(), height=550)
             
-            # Hapus berkas temporer setelah sukses render
-            if os.path.exists(cleaned_cleaned_gexf):
-                os.remove(cleaned_cleaned_gexf)
+            # Hapus berkas pembersih temporer untuk menjaga ruang penyimpanan cloud tetap bersih
+            if os.path.exists(cleaned_gexf_path):
+                os.remove(cleaned_gexf_path)
                 
         except Exception as e:
             st.error(f"Terjadi kesalahan saat memproses file GEXF: {e}")
