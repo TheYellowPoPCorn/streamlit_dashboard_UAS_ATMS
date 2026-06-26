@@ -41,18 +41,57 @@ st.write("---")
 st.subheader("📄 Dataset yang Digunakan")
 dataset_name = "ecommerce_inset_labeled_final.csv"
 
+# ==========================================
+# PROTEKSI DATASET (MENCEGAH KEYERROR BRAND & TOPIC)
+# ==========================================
 @st.cache_data
 def load_data():
     if os.path.exists(dataset_name):
         df = pd.read_csv(dataset_name)
+        
+        # 1. Auto-generate kolom 'brand' jika tidak ada
+        if 'brand' not in df.columns and 'full_text' in df.columns:
+            def tentukan_brand(text):
+                text_lower = str(text).lower()
+                if 'shopee' in text_lower: return 'Shopee'
+                elif 'tokopedia' in text_lower or 'tokped' in text_lower: return 'Tokopedia'
+                elif 'j&t' in text_lower or 'jnt' in text_lower: return 'J&T'
+                elif 'jne' in text_lower: return 'JNE'
+                else: return 'Lainnya'
+            df['brand'] = df['full_text'].apply(tentukan_brand)
+            
+        # 2. Auto-generate kolom 'topic_issue' jika tidak ada
+        if 'topic_issue' not in df.columns and 'full_text' in df.columns:
+            def tentukan_topik(text):
+                text_lower = str(text).lower()
+                if 'kirim' in text_lower or 'lama' in text_lower or 'lambat' in text_lower or 'sampai' in text_lower:
+                    return 'Keterlambatan Pengiriman'
+                elif 'aplikasi' in text_lower or 'error' in text_lower or 'bug' in text_lower:
+                    return 'Aplikasi Error / Saldo'
+                elif 'refund' in text_lower or 'dana' in text_lower or 'uang' in text_lower:
+                    return 'Refund & Pengembalian Dana'
+                elif 'kurir' in text_lower or 'kasar' in text_lower or 'marah' in text_lower:
+                    return 'Kurir Kurang Ramah'
+                elif 'promo' in text_lower or 'voucher' in text_lower or 'diskon' in text_lower:
+                    return 'Masalah Validasi Promo'
+                else:
+                    return 'Keluhan Layanan Umum'
+            df['topic_issue'] = df['full_text'].apply(tentukan_topik)
+            
+        # 3. Fallback super aman jika format data benar-benar berantakan
+        if 'brand' not in df.columns: df['brand'] = 'Semua Brand'
+        if 'topic_issue' not in df.columns: df['topic_issue'] = 'Lainnya'
+        if 'inset_sentiment' not in df.columns: df['inset_sentiment'] = 'Neutral'
+
     else:
+        # Fallback jika CSV belum diunggah sama sekali
         np.random.seed(42)
         df = pd.DataFrame({
             'username': [f'user{i}' for i in range(500)],
-            'brand': np.random.choice(['Shopee', 'Tokopedia', 'JNE', 'J&T'], 500, p=[0.35, 0.35, 0.15, 0.15]),
-            'inset_sentiment': np.random.choice(['Positive', 'Neutral', 'Negative'], 500, p=[0.2, 0.2, 0.6]),
+            'brand': np.random.choice(['Shopee', 'Tokopedia', 'JNE', 'J&T'], 500),
+            'inset_sentiment': np.random.choice(['Positive', 'Neutral', 'Negative'], 500),
             'kmeans_cluster': np.random.choice(['Cluster 0', 'Cluster 1', 'Cluster 2'], 500),
-            'topic_issue': np.random.choice(['Pengiriman Lambat', 'Aplikasi Error', 'CS Kurang Ramah', 'Promo Gagal', 'Paket Hilang'], 500)
+            'topic_issue': np.random.choice(['Pengiriman Lambat', 'Aplikasi Error', 'CS Kurang Ramah'], 500)
         })
     return df
 
@@ -108,7 +147,6 @@ with tab2:
     if 'kmeans_cluster' in df.columns:
         cluster_counts = df['kmeans_cluster'].value_counts().reset_index()
         cluster_counts.columns = ['Klaster', 'Jumlah Tweet']
-        
         fig_bar_cluster = px.bar(cluster_counts, x='Klaster', y='Jumlah Tweet',
                                  color='Klaster', title="Distribusi Data per Klaster",
                                  text='Jumlah Tweet')
@@ -125,7 +163,6 @@ with tab3:
         topic_counts = df['topic_issue'].value_counts().reset_index()
         topic_counts.columns = ['Topik Keluhan', 'Jumlah']
         topic_counts = topic_counts.sort_values(by='Jumlah', ascending=True)
-        
         fig_lda = px.bar(topic_counts, x='Jumlah', y='Topik Keluhan', orientation='h',
                          color='Jumlah', color_continuous_scale='Reds',
                          title="Volume Keluhan Berdasarkan Topik LDA")
@@ -138,69 +175,60 @@ with tab3:
 # ------------------------------------------
 with tab4:
     st.header("🕸️ Social Network Analysis (SNA)")
-    st.write("Analisis jaringan aktor yang menyebarkan komplain berdasarkan file proyek **Gephi (`ecommerce.gexf`)**.")
+    st.write("Analisis jaringan aktor yang menyebarkan komplain berdasarkan file **Gephi (`ecommerce.gexf`)**.")
     
     gexf_file = 'ecommerce.gexf'
     
     if os.path.exists(gexf_file):
         try:
-            # ==========================================
-            # JALAN PINTAS ANTI-ERROR (BYPASS NETWORKX PARSER)
-            # Kita bangun grafnya secara manual langsung dari struktur intinya
-            # ==========================================
+            # BYPASS NETWORKX: Baca langsung dari XML Core agar 100% anti-crash
             tree = ET.parse(gexf_file)
             root = tree.getroot()
-            
-            # Deteksi namespace XML Gephi
             ns = {'g': root.tag.split('}')[0].strip('{')} if '}' in root.tag else {'g': ''}
             xpath_query = './/g:edge' if ns['g'] else './/edge'
             
-            # Buat Graf kosong
             G = nx.Graph()
             
-            # Ekstrak sumber (source) dan target langsung dari file, abaikan atribut yang bikin error
+            # Ekstrak data garis
             for edge in root.findall(xpath_query, ns):
                 source = edge.get('source')
                 target = edge.get('target')
                 if source and target:
                     G.add_edge(source, target)
             
-            # Hitung Degree Centrality
+            # Eksekusi SNA Centrality
             degree_dict = nx.degree_centrality(G)
             
-            # Konversi ke DataFrame
-            df_degree_all = pd.DataFrame(list(degree_dict.items()), columns=['Akun', 'Degree Centrality'])
-            df_degree_all = df_degree_all.sort_values(by='Degree Centrality', ascending=False)
-            
-            # Ambil Top 10
-            df_degree_top10 = df_degree_all.head(10)
-            
-            st.subheader("🏆 Top 10 Aktor Paling Berpengaruh (Degree Centrality)")
-            st.dataframe(df_degree_top10, use_container_width=True, hide_index=True)
-            
-            # Visualisasi Jaringan Interaktif dengan PyVis
-            st.subheader("🌐 Peta Jaringan Interaktif")
-            st.write("Visualisasi ini difilter untuk maksimal 200 node teratas agar tidak membebani browser.")
-            
-            if len(G.nodes) > 200:
-                top_nodes = list(df_degree_all['Akun'].head(200).values)
-                G_sub = G.subgraph(top_nodes)
+            if len(degree_dict) > 0:
+                df_degree_all = pd.DataFrame(list(degree_dict.items()), columns=['Akun', 'Degree Centrality'])
+                df_degree_all = df_degree_all.sort_values(by='Degree Centrality', ascending=False)
+                df_degree_top10 = df_degree_all.head(10)
+                
+                st.subheader("🏆 Top 10 Aktor Paling Berpengaruh (Degree Centrality)")
+                st.dataframe(df_degree_top10, use_container_width=True, hide_index=True)
+                
+                st.subheader("🌐 Peta Jaringan Interaktif")
+                st.write("Ditampilkan maksimal 200 node teratas agar tidak membebani browser.")
+                
+                # Filter Node
+                if len(G.nodes) > 200:
+                    top_nodes = list(df_degree_all['Akun'].head(200).values)
+                    G_sub = G.subgraph(top_nodes)
+                else:
+                    G_sub = G
+                
+                # Render PyVis
+                net = Network(height="500px", width="100%", bgcolor="#ffffff", font_color="black")
+                net.from_nx(G_sub)
+                
+                path_html = "network_map.html"
+                net.save_graph(path_html)
+                with open(path_html, 'r', encoding='utf-8') as HtmlFile:
+                    components.html(HtmlFile.read(), height=550)
             else:
-                G_sub = G
-            
-            # Render Graf via PyVis
-            net = Network(height="500px", width="100%", bgcolor="#ffffff", font_color="black")
-            net.from_nx(G_sub)
-            
-            path_html = "network_map.html"
-            net.save_graph(path_html)
-            
-            # Tampilkan ke Streamlit dengan aman
-            with open(path_html, 'r', encoding='utf-8') as HtmlFile:
-                source_code = HtmlFile.read()
-                components.html(source_code, height=550)
+                st.warning("Grafik GEXF berhasil dibaca, tapi tidak ditemukan relasi antar akun di dalamnya.")
                 
         except Exception as e:
-            st.error(f"Terjadi kesalahan teknis: {e}")
+            st.error(f"Terjadi kesalahan teknis saat merender jaringan: {e}")
     else:
         st.info("File `ecommerce.gexf` belum ditemukan di direktori Anda.")
