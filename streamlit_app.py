@@ -141,7 +141,7 @@ with tab3:
     else:
         st.warning("Kolom 'topic_issue' tidak ditemukan di dataset Anda.")
 
-# ------------------------------------------
+# # ------------------------------------------
 # TAB 4: SOCIAL NETWORK ANALYSIS (SNA)
 # ------------------------------------------
 with tab4:
@@ -157,19 +157,26 @@ with tab4:
             
             # Hitung Degree Centrality (Siapa yang paling banyak di-mention/mention)
             degree_dict = nx.degree_centrality(G)
-            df_degree = pd.DataFrame(degree_dict.items(), columns=['Akun', 'Degree Centrality'])
-            df_degree = df_degree.sort_values(by='Degree Centrality', ascending=False).head(10)
+            
+            # PERBAIKAN: Pisahkan data keseluruhan dengan data Top 10 untuk tabel
+            df_degree_all = pd.DataFrame(degree_dict.items(), columns=['Akun', 'Degree Centrality'])
+            df_degree_all = df_degree_all.sort_values(by='Degree Centrality', ascending=False)
+            
+            df_degree_top10 = df_degree_all.head(10)
             
             st.subheader("🏆 Top 10 Aktor Paling Berpengaruh (Degree Centrality)")
-            st.dataframe(df_degree, use_container_width=True, hide_index=True)
+            st.dataframe(df_degree_top10, use_container_width=True, hide_index=True)
             
             # Visualisasi Jaringan Interaktif dengan PyVis
             st.subheader("🌐 Peta Jaringan Interaktif")
-            st.write("Visualisasi ini difilter untuk 200 node teratas agar tidak membebani browser.")
+            st.write("Visualisasi ini difilter untuk maksimal 200 node teratas agar tidak membebani browser.")
             
-            # Filter graph untuk rendering web (Mencegah browser crash jika node > ribuan)
-            top_nodes = list(df_degree['Akun'].head(200).values) if len(G.nodes) > 200 else list(G.nodes)
-            G_sub = G.subgraph(top_nodes)
+            # PERBAIKAN: Filter graph yang benar menggunakan data df_degree_all
+            if len(G.nodes) > 200:
+                top_nodes = list(df_degree_all['Akun'].head(200).values)
+                G_sub = G.subgraph(top_nodes)
+            else:
+                G_sub = G
             
             # Inisiasi PyVis Network
             net = Network(height="500px", width="100%", bgcolor="#ffffff", font_color="black")
