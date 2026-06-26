@@ -6,6 +6,7 @@ import networkx as nx
 from pyvis.network import Network
 import streamlit.components.v1 as components
 import os
+import xml.etree.ElementTree as ET
 
 # ==========================================
 # 1. KONFIGURASI HALAMAN & TEMA UTAMA
@@ -143,17 +144,35 @@ with tab4:
     
     if os.path.exists(gexf_file):
         try:
-            # Membaca graf dari file GEXF
-            G = nx.read_gexf(gexf_file)
+            # SOLUSI FIX ERROR EDGE ATTRIBUTE: Bersihkan atribut edge ilegal dari file GEXF sebelum dibaca NetworkX
+            tree = ET.parse(gexf_file)
+            root = tree.getroot()
+            
+            # Cari namespace XML GEXF dinamik
+            ns = {'g': root.tag.split('}')[0].strip('{')} if '}' in root.tag else {'g': ''}
+            xpath_query = './/g:edge' if ns['g'] else './/edge'
+            
+            # Hapus paksa elemen bawaan gephi yang bikin crash di networkx (seperti attvalues pada edge)
+            for edge in root.findall(xpath_query, ns):
+                for child in list(edge):
+                    if 'attvalues' in child.tag:
+                        edge.remove(child)
+            
+            # Simpan ke file temporer yang bersih
+            cleaned_gexf = 'ecommerce_cleaned.gexf'
+            tree.write(cleaned_cleaned_gexf := cleaned_gexf, encoding='utf-8', xml_declaration=True)
+            
+            # Membaca graf yang sudah dibersihkan secara aman
+            G = nx.read_gexf(cleaned_cleaned_gexf)
             
             # Hitung Degree Centrality
             degree_dict = nx.degree_centrality(G)
             
-            # Konversi ke DataFrame dan urutkan
-            df_degree_all = pd.DataFrame(degree_dict.items(), columns=['Akun', 'Degree Centrality'])
+            # Konversi ke DataFrame
+            df_degree_all = pd.DataFrame(list(degree_dict.items()), columns=['Akun', 'Degree Centrality'])
             df_degree_all = df_degree_all.sort_values(by='Degree Centrality', ascending=False)
             
-            # Ambil Top 10 untuk ditampilkan di tabel
+            # Ambil Top 10
             df_degree_top10 = df_degree_all.head(10)
             
             st.subheader("🏆 Top 10 Aktor Paling Berpengaruh (Degree Centrality)")
@@ -163,7 +182,6 @@ with tab4:
             st.subheader("🌐 Peta Jaringan Interaktif")
             st.write("Visualisasi ini difilter untuk maksimal 200 node teratas agar tidak membebani browser.")
             
-            # Filter graph agar web tidak crash
             if len(G.nodes) > 200:
                 top_nodes = list(df_degree_all['Akun'].head(200).values)
                 G_sub = G.subgraph(top_nodes)
@@ -179,6 +197,10 @@ with tab4:
             HtmlFile = open(path_html, 'r', encoding='utf-8')
             components.html(HtmlFile.read(), height=550)
             
+            # Hapus berkas temporer setelah sukses render
+            if os.path.exists(cleaned_cleaned_gexf):
+                os.remove(cleaned_cleaned_gexf)
+                
         except Exception as e:
             st.error(f"Terjadi kesalahan saat memproses file GEXF: {e}")
     else:
