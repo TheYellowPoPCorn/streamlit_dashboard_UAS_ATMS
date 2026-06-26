@@ -16,7 +16,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Kustomisasi CSS untuk mempercantik logo dan tampilan
 st.markdown("""
     <style>
     .brand-logo { max-height: 50px; object-fit: contain; margin-bottom: 10px; }
@@ -41,13 +40,11 @@ st.write("---")
 st.subheader("📄 Dataset yang Digunakan")
 dataset_name = "ecommerce_inset_labeled_final.csv"
 
-# Fungsi untuk memuat data (dengan fallback mock data jika file tidak ditemukan)
 @st.cache_data
 def load_data():
     if os.path.exists(dataset_name):
         df = pd.read_csv(dataset_name)
     else:
-        # Fallback jika CSV belum diunggah
         np.random.seed(42)
         df = pd.DataFrame({
             'username': [f'user{i}' for i in range(500)],
@@ -60,14 +57,12 @@ def load_data():
 
 df = load_data()
 
-# Tombol Download Dataset
 csv_data = df.to_csv(index=False).encode('utf-8')
 st.download_button(
     label="📥 Download Dataset CSV",
     data=csv_data,
     file_name=dataset_name,
-    mime='text/csv',
-    help="Klik untuk mengunduh dataset yang digunakan dalam analisis ini."
+    mime='text/csv'
 )
 st.write("---")
 
@@ -95,7 +90,7 @@ with tab1:
         df_sentimen = df if pilih_brand == 'Semua Brand' else df[df['brand'] == pilih_brand]
         sentimen_count = df_sentimen['inset_sentiment'].value_counts().reset_index()
         sentimen_count.columns = ['Sentimen', 'Jumlah']
-        st.dataframe(sentimen_count, use_container_width=True)
+        st.dataframe(sentimen_count, use_container_width=True, hide_index=True)
 
     with col_b:
         fig_pie = px.pie(sentimen_count, values='Jumlah', names='Sentimen', 
@@ -109,8 +104,6 @@ with tab1:
 # ------------------------------------------
 with tab2:
     st.header("🎯 Hasil Klasterisasi (K-Means)")
-    st.write("Pengelompokan karakteristik keluhan pengguna berdasarkan fitur ekstraksi teks.")
-    
     if 'kmeans_cluster' in df.columns:
         cluster_counts = df['kmeans_cluster'].value_counts().reset_index()
         cluster_counts.columns = ['Klaster', 'Jumlah Tweet']
@@ -127,8 +120,6 @@ with tab2:
 # ------------------------------------------
 with tab3:
     st.header("🔥 Trending Topic Keluhan (LDA)")
-    st.write("Topik keluhan terbanyak yang sedang dibicarakan oleh pengguna di media sosial.")
-    
     if 'topic_issue' in df.columns:
         topic_counts = df['topic_issue'].value_counts().reset_index()
         topic_counts.columns = ['Topik Keluhan', 'Jumlah']
@@ -141,7 +132,7 @@ with tab3:
     else:
         st.warning("Kolom 'topic_issue' tidak ditemukan di dataset Anda.")
 
-# # ------------------------------------------
+# ------------------------------------------
 # TAB 4: SOCIAL NETWORK ANALYSIS (SNA)
 # ------------------------------------------
 with tab4:
@@ -155,13 +146,14 @@ with tab4:
             # Membaca graf dari file GEXF
             G = nx.read_gexf(gexf_file)
             
-            # Hitung Degree Centrality (Siapa yang paling banyak di-mention/mention)
+            # Hitung Degree Centrality
             degree_dict = nx.degree_centrality(G)
             
-            # PERBAIKAN: Pisahkan data keseluruhan dengan data Top 10 untuk tabel
+            # Konversi ke DataFrame dan urutkan
             df_degree_all = pd.DataFrame(degree_dict.items(), columns=['Akun', 'Degree Centrality'])
             df_degree_all = df_degree_all.sort_values(by='Degree Centrality', ascending=False)
             
+            # Ambil Top 10 untuk ditampilkan di tabel
             df_degree_top10 = df_degree_all.head(10)
             
             st.subheader("🏆 Top 10 Aktor Paling Berpengaruh (Degree Centrality)")
@@ -171,18 +163,17 @@ with tab4:
             st.subheader("🌐 Peta Jaringan Interaktif")
             st.write("Visualisasi ini difilter untuk maksimal 200 node teratas agar tidak membebani browser.")
             
-            # PERBAIKAN: Filter graph yang benar menggunakan data df_degree_all
+            # Filter graph agar web tidak crash
             if len(G.nodes) > 200:
                 top_nodes = list(df_degree_all['Akun'].head(200).values)
                 G_sub = G.subgraph(top_nodes)
             else:
                 G_sub = G
             
-            # Inisiasi PyVis Network
+            # Render Graf
             net = Network(height="500px", width="100%", bgcolor="#ffffff", font_color="black")
             net.from_nx(G_sub)
             
-            # Simpan dan tampilkan di Streamlit
             path_html = "network_map.html"
             net.save_graph(path_html)
             HtmlFile = open(path_html, 'r', encoding='utf-8')
@@ -191,4 +182,4 @@ with tab4:
         except Exception as e:
             st.error(f"Terjadi kesalahan saat memproses file GEXF: {e}")
     else:
-        st.info("File `ecommerce.gexf` belum ditemukan di direktori. Pastikan Anda telah mengunggah file hasil export Gephi Anda.")
+        st.info("File `ecommerce.gexf` belum ditemukan di direktori Anda.")
