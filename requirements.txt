@@ -2,5 +2,12 @@ streamlit
 pandas
 numpy
 plotly
+scikit-learn
 networkx
-pyvis
+python-louvain
+matplotlib
+seaborn
+wordcloud
+nltk
+Sastrawi
+snscrape
