@@ -43,8 +43,18 @@ def main():
         # --- TAB 1: INTERACTIVE NETWORK ---
         with tab1:
             st.subheader("Pemetaan Jaringan (Visualisasi Interaktif)")
-            st.info("Catatan: Untuk menjaga performa, visualisasi ini hanya menampilkan Top 500 Node berdasarkan koneksi terbanyak. Gunakan *scroll* untuk zoom dan klik untuk drag node.")
-            render_interactive_network(G, max_nodes=150)
+            
+            # Menambahkan Slider untuk kontrol jumlah node
+            max_nodes_choice = st.select_slider(
+                "Pilih jumlah maksimal node untuk ditampilkan:",
+                options=[100, 200, 300, 400, 500],
+                value=100
+            )
+            
+            st.info(f"Visualisasi menampilkan {max_nodes_choice} node berdasarkan koneksi terbanyak. Gunakan scroll untuk zoom dan klik untuk drag node.")
+            
+            # Menggunakan variabel max_nodes_choice yang dipilih pengguna
+            render_interactive_network(G, max_nodes=max_nodes_choice)
             
         # --- TAB 2: INFLUENCER & CENTRALITY ---
         with tab2:
