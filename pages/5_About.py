@@ -53,9 +53,12 @@ def main():
         
         st.success("### 👤 Penulis / Pengembang")
         st.markdown("""
-        **[Nama Anda / Tim Anda]** Dashboard ini dibuat untuk memenuhi standardisasi Analisis Big Data tingkat lanjut.
+        **Muhammad Raka Pratama (2411500206)**\n
+        **Ellisya Citra Dewi (2412500262)**\n
+        **Mayra Rizki (2411500628)**\n
+        Dashboard ini dibuat untuk memenuhi syarat UAS Mata Kuliah Analisis Teks & Media Sosial (ATMS)
         
-        🔗 *Github Repository: [Tautan Repositori]*
+        🔗 *Github Repository: https://github.com/TheYellowPoPCorn/streamlit_dashboard_UAS_ATMS*
         """)
 
 if __name__ == "__main__":
