@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 from sklearn.svm import SVC
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier
@@ -82,13 +83,26 @@ def get_confusion_matrix(model, model_name, _X_test, y_test):
     return pd.DataFrame(cm, index=config.LABEL_NAMES, columns=config.LABEL_NAMES)
 
 def predict_text(text, model, model_name, vectorizer):
-    """Memprediksi teks baru dari input pengguna."""
-    X_new = vectorizer.transform([text])
+    """Memprediksi teks baru dari input pengguna dengan pre-processing dasar."""
+    
+    # 1. Cleaning dasar agar formatnya mirip dengan 'clean_text' (huruf kecil & tanpa tanda baca)
+    text_clean = str(text).lower()
+    text_clean = re.sub(r'[^a-z\s]', '', text_clean)
+    text_clean = text_clean.strip()
+    
+    # 2. Transformasi dengan TF-IDF
+    X_new = vectorizer.transform([text_clean])
+    
+    # Cek apakah vektor kosong (kata-kata tidak ada di vocabulary dataset latih sama sekali)
+    if X_new.nnz == 0:
+        return "Unknown"
+        
+    # 3. Prediksi menggunakan model yang dipilih
     pred = model.predict(X_new)[0]
     
+    # 4. Mapping hasil khusus XGBoost
     if model_name == "XGBoost":
         reverse_map = {0: 'Negative', 1: 'Neutral', 2: 'Positive'}
-        return reverse_map[pred]
+        return reverse_map.get(pred, 'Unknown')
+        
     return pred
-
-# Force reload
