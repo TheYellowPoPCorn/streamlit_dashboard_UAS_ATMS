@@ -44,7 +44,7 @@ def main():
         with tab1:
             st.subheader("Pemetaan Jaringan (Visualisasi Interaktif)")
             st.info("Catatan: Untuk menjaga performa, visualisasi ini hanya menampilkan Top 500 Node berdasarkan koneksi terbanyak. Gunakan *scroll* untuk zoom dan klik untuk drag node.")
-            render_interactive_network(G, max_nodes=500)
+            render_interactive_network(G, max_nodes=150)
             
         # --- TAB 2: INFLUENCER & CENTRALITY ---
         with tab2:
