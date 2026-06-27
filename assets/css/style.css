@@ -1,0 +1,48 @@
+/* Padding layout utama */
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* Hero Section Typography */
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    background: -webkit-linear-gradient(45deg, #ff4747, #fb923c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+}
+
+.hero-subtitle {
+    font-size: 1.2rem;
+    color: #a1a1a1;
+    margin-bottom: 2rem;
+    font-weight: 400;
+}
+
+/* KPI Cards Container & Modern Styling */
+div[data-testid="metric-container"] {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+div[data-testid="metric-container"]:hover {
+    transform: translateY(-5px);
+    border-color: #555;
+}
+
+/* Expander styling */
+.streamlit-expanderHeader {
+    font-weight: 600;
+}
+
+/* Sembunyikan item pertama ('app') di sidebar */
+[data-testid="stSidebarNav"] ul:first-child li:first-child {
+    display: none !important;
+}

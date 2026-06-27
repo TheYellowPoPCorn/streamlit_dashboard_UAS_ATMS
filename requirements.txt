@@ -1,0 +1,12 @@
+streamlit==1.32.0
+pandas==2.2.1
+numpy==1.26.4
+scikit-learn==1.4.1.post1
+xgboost==2.0.3
+bertopic==0.16.0
+sentence-transformers==2.5.1
+networkx==3.2.1
+pyvis==0.3.2
+wordcloud==1.9.3
+matplotlib==3.8.3
+plotly==5.19.0
