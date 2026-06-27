@@ -38,9 +38,10 @@ def degree_centrality(_G):
     dc = nx.degree_centrality(_G)
     return _get_top_nodes(dc)
 
+@st.cache_data
 def betweenness_centrality(_G):
     """Menghitung Betweenness Centrality (Aktor yang menjadi jembatan informasi)."""
-    bc = nx.betweenness_centrality(_G)
+    bc = nx.betweenness_centrality(_G, k=100, seed=42)
     return _get_top_nodes(bc)
 
 def eigenvector_centrality(_G):
