@@ -53,7 +53,6 @@ def main():
             st.subheader("Evaluasi Model Prediktif")
             
             # --- MANAJEMEN SESSION STATE ---
-            # Menyimpan hasil kalkulasi model di RAM agar tidak hilang saat dropdown diganti
             if "model_trained" not in st.session_state:
                 st.session_state.model_trained = False
                 st.session_state.models = None
@@ -62,7 +61,6 @@ def main():
                 st.session_state.y_test = None
                 st.session_state.tfidf_vectorizer = None
 
-            # Membungkus parameter ke dalam Form untuk mengisolasi komputasi berulang di Cloud
             with st.form(key="ml_training_form"):
                 st.markdown("##### ⚙️ Konfigurasi Parameter Training")
                 
@@ -74,7 +72,6 @@ def main():
                 
                 submit_button = st.form_submit_button(label="🚀 Jalankan Komparasi Model")
             
-            # Pemicu Eksekusi ML
             if submit_button:
                 with st.spinner("Mengekstraksi TF-IDF dan melatih model (Proses ini diisolasi)..."):
                     X_tfidf, tfidf_vectorizer = prepare_tfidf(df['clean_text']) 
@@ -83,7 +80,6 @@ def main():
                     models = train_all_models(X_train, y_train)
                     metrics = evaluate_models(models, X_test, y_test)
                     
-                    # Amankan ke session state
                     st.session_state.models = models
                     st.session_state.metrics = metrics
                     st.session_state.X_test = X_test
@@ -91,7 +87,6 @@ def main():
                     st.session_state.tfidf_vectorizer = tfidf_vectorizer
                     st.session_state.model_trained = True
 
-            # Tampilkan Visualisasi jika proses training sukses dilakukan
             if st.session_state.model_trained:
                 metrics = st.session_state.metrics
                 models = st.session_state.models
@@ -109,7 +104,6 @@ def main():
                 
                 st.markdown("---")
                 
-                # Opsi Dropdown Interaktif Evaluasi Model
                 selected_model_name = st.selectbox("Pilih Model untuk melihat Detail (Classification Report & Confusion Matrix):", list(models.keys()))
                 selected_model = models[selected_model_name]
                 
@@ -125,7 +119,7 @@ def main():
                     
                 st.markdown("---")
                 
-                # Fitur Prediksi Mandiri
+                # Fitur Prediksi Mandiri dengan perlindungan "Unknown"
                 st.subheader("🧪 Uji Prediksi Teks")
                 user_input = st.text_input("Masukkan teks review/komentar baru:")
                 if st.button("Prediksi Sentimen"):
@@ -133,10 +127,13 @@ def main():
                         st.warning("Masukkan teks terlebih dahulu.")
                     else:
                         prediction = predict_text(user_input, selected_model, selected_model_name, tfidf_vectorizer)
+                        
                         if prediction == 'Positive':
                             st.success(f"Hasil Prediksi ({selected_model_name}): **Positif** 🟢")
                         elif prediction == 'Negative':
                             st.error(f"Hasil Prediksi ({selected_model_name}): **Negatif** 🔴")
+                        elif prediction == 'Unknown':
+                            st.warning("⚠️ **Tidak Dikenali:** Kata-kata yang Anda masukkan tidak ada dalam dataset pelatihan model (Out of Vocabulary). Silakan gunakan kalimat lain.")
                         else:
                             st.info(f"Hasil Prediksi ({selected_model_name}): **Netral** ⚪")
             else:
