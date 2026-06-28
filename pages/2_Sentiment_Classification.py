@@ -72,10 +72,11 @@ def main():
                 
                 submit_button = st.form_submit_button(label="🚀 Jalankan Komparasi Model")
             
-            if submit_button:
-                with st.spinner("Mengekstraksi TF-IDF dan melatih model (Proses ini diisolasi)..."):
-                    X_tfidf, tfidf_vectorizer = prepare_tfidf(df['clean_text']) 
-                    X_train, X_test, y_train, y_test = prepare_train_test(X_tfidf, df['inset_sentiment'])
+                if submit_button:
+                    with st.spinner("Mengekstraksi TF-IDF dan melatih model (Proses ini diisolasi)..."):
+                        # Masukkan input UI ke dalam parameter fungsi!
+                        X_tfidf, tfidf_vectorizer = prepare_tfidf(df['clean_text'], max_features=max_features_input) 
+                        X_train, X_test, y_train, y_test = prepare_train_test(X_tfidf, df['inset_sentiment'], test_size=test_size_input)
                     
                     models = train_all_models(X_train, y_train)
                     metrics = evaluate_models(models, X_test, y_test)
