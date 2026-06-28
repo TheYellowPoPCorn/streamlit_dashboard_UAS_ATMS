@@ -11,11 +11,12 @@ def prepare_dataset(df):
     df_clean = df.dropna(subset=['clean_text', 'inset_sentiment']).copy()
     return df_clean
 
+# TAMBAHKAN PARAMETER max_features DI SINI
 @st.cache_resource
-def prepare_tfidf(text_corpus):
-    """Mengekstraksi fitur TF-IDF dari korpus teks."""
+def prepare_tfidf(text_corpus, max_features=1500):
+    """Mengekstraksi fitur TF-IDF dari korpus teks berdasarkan input pengguna."""
     tfidf = TfidfVectorizer(
-        max_features=config.MAX_FEATURES, 
+        max_features=max_features, # Sekarang menggunakan nilai dari form UI
         ngram_range=config.NGRAM_RANGE
     )
     X_tfidf = tfidf.fit_transform(text_corpus)
@@ -31,18 +32,19 @@ def prepare_count_vectorizer(text_corpus):
     X_cv = cv.fit_transform(text_corpus)
     return X_cv, cv
 
+# TAMBAHKAN PARAMETER test_size DI SINI
 @st.cache_data
-def prepare_train_test(_X, y):
-    """Membagi data menjadi Training dan Testing (di-cache)."""
+def prepare_train_test(_X, y, test_size=0.2):
+    """Membagi data menjadi Training dan Testing."""
     return train_test_split(
         _X, y, 
-        test_size=config.TEST_SIZE, 
+        test_size=test_size, # Sekarang menggunakan nilai dari form UI
         random_state=config.RANDOM_STATE
     )
 
 @st.cache_resource
 def prepare_svd(_X_tfidf):
-    """Reduksi dimensi SVD untuk visualisasi Clustering (K-Means scatter plot)."""
+    """Reduksi dimensi SVD untuk visualisasi Clustering."""
     svd = TruncatedSVD(
         n_components=config.SVD_COMPONENTS, 
         random_state=config.RANDOM_STATE
