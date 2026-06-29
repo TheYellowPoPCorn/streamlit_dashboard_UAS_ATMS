@@ -6,7 +6,7 @@ from utils.feature_engineering import prepare_dataset, prepare_tfidf, prepare_co
 # PASTIKAN get_cluster_titles DI-IMPORT DI SINI
 from utils.analytics_cluster import run_kmeans, find_best_cluster, get_cluster_titles, cluster_keywords, prepare_cluster_dataframe
 from utils.plot_cluster import plot_cluster_metrics, plot_svd_scatter, plot_cluster_distribution
-from utils.analytics_topic import run_lda, get_lda_topics, run_bertopic, generate_wordcloud, generate_ngrams
+from utils.analytics_topic import run_lda, get_lda_titles, get_lda_topics, run_bertopic, generate_wordcloud, generate_ngrams
 from utils.plot_topic import plot_ngrams, plot_bertopic_barchart
 import config
 
