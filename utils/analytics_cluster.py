@@ -37,7 +37,6 @@ def find_best_cluster(_X, min_k=config.MIN_CLUSTER, max_k=config.MAX_CLUSTER):
         
     return pd.DataFrame(metrics)
 
-@st.cache_data
 def get_cluster_titles(_model, _vectorizer, n_words=3):
     """Mengekstrak top 3 keywords untuk dijadikan Judul Topik dinamis."""
     order_centroids = _model.cluster_centers_.argsort()[:, ::-1]
@@ -50,7 +49,6 @@ def get_cluster_titles(_model, _vectorizer, n_words=3):
         titles[i] = f"Cluster {i}: {', '.join(top_words).title()}"
     return titles
 
-@st.cache_data
 def cluster_keywords(_model, _vectorizer, cluster_titles, n_words=10):
     """Mengambil Top Keywords dan memetakannya ke Judul Topik."""
     order_centroids = _model.cluster_centers_.argsort()[:, ::-1]
@@ -70,26 +68,3 @@ def prepare_cluster_dataframe(df, labels, svd_coords, cluster_titles):
     df_c['SVD1'] = svd_coords[:, 0]
     df_c['SVD2'] = svd_coords[:, 1]
     return df_c
-
-@st.cache_data
-def get_lda_titles(_model, _vectorizer, n_words=3):
-    """Mengekstrak top 3 keywords untuk judul topik LDA."""
-    titles = {}
-    feature_names = _vectorizer.get_feature_names_out()
-    
-    for topic_idx, topic in enumerate(_model.components_):
-        top_words = [feature_names[i] for i in topic.argsort()[:-n_words - 1:-1]]
-        titles[topic_idx] = f"Topik {topic_idx+1}: {', '.join(top_words).title()}"
-    return titles
-
-@st.cache_data
-def get_lda_topics(_model, _vectorizer, lda_titles, n_words=10):
-    """Menarik keywords dari model LDA dengan judul yang sudah dipetakan."""
-    topics = {}
-    feature_names = _vectorizer.get_feature_names_out()
-    
-    for topic_idx, topic in enumerate(_model.components_):
-        top_features_ind = topic.argsort()[:-n_words - 1:-1]
-        title = lda_titles[topic_idx]
-        topics[title] = [feature_names[i] for i in top_features_ind]
-    return pd.DataFrame(topics)

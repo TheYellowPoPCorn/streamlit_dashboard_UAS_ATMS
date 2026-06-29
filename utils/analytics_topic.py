@@ -11,7 +11,7 @@ import pandas as pd
 import streamlit as st
 import config
 
-__all__ = ['run_lda', 'get_lda_topics', 'run_bertopic', 'generate_wordcloud', 'generate_ngrams']
+__all__ = ['run_lda', 'get_lda_topics', 'run_bertopic', 'generate_wordcloud', 'generate_ngrams', 'get_lda_titles']
 
 def run_lda(_X_cv, n_topics=config.LDA_TOPICS):
     """Menjalankan algoritma LDA."""
@@ -22,13 +22,25 @@ def run_lda(_X_cv, n_topics=config.LDA_TOPICS):
     lda.fit(_X_cv)
     return lda
 
-def get_lda_topics(_model, _vectorizer, n_words=10):
-    """Menarik keywords dari model LDA."""
+def get_lda_titles(_model, _vectorizer, n_words=3):
+    """Mengekstrak top 3 keywords untuk judul topik LDA."""
+    titles = {}
+    feature_names = _vectorizer.get_feature_names_out()
+    
+    for topic_idx, topic in enumerate(_model.components_):
+        top_words = [feature_names[i] for i in topic.argsort()[:-n_words - 1:-1]]
+        titles[topic_idx] = f"Topik {topic_idx+1}: {', '.join(top_words).title()}"
+    return titles
+
+def get_lda_topics(_model, _vectorizer, lda_titles, n_words=10):
+    """Menarik keywords dari model LDA dengan judul yang sudah dipetakan."""
     topics = {}
+    feature_names = _vectorizer.get_feature_names_out()
+    
     for topic_idx, topic in enumerate(_model.components_):
         top_features_ind = topic.argsort()[:-n_words - 1:-1]
-        feature_names = _vectorizer.get_feature_names_out()
-        topics[f"Topic {topic_idx+1}"] = [feature_names[i] for i in top_features_ind]
+        title = lda_titles[topic_idx]
+        topics[title] = [feature_names[i] for i in top_features_ind]
     return pd.DataFrame(topics)
 
 def run_bertopic(docs):
